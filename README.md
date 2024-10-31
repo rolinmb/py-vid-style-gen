@@ -1,1 +1,1 @@
-Using python
+Using python and machine learning / stylegan type neural net to generate videos from specified training content. 

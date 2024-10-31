@@ -35,7 +35,8 @@ def extract_frames(vidin, outdirname):
     if os.path.exists(outdirname):
         shutil.rmtree(outdirname)
 
-    os.makedirs(outdirname, exist_ok=True)
+    class_folder = os.path.join(outdirname, 'class_0')
+    os.makedirs(class_folder, exist_ok=True)
 
     cap = cv2.VideoCapture(vidin)
     framenum = 0
@@ -44,7 +45,7 @@ def extract_frames(vidin, outdirname):
         if not ret:
             break
 
-        framefile = os.path.join(outdirname, f'{framenum:04d}.png')
+        framefile = os.path.join(class_folder, f'{framenum:04d}.png')
         cv2.imwrite(framefile, frame)
         framenum += 1
 
@@ -125,21 +126,21 @@ def train(generator, discriminator, dataloader, epochs, device):
 
 # Generate new frames using the post-training generator
 def generate_frames(generator, num_frames, output_folder, device):
-        os.makedirs(output_folder, exist_ok=True)
-        generator.eval()
+    os.makedirs(output_folder, exist_ok=True)
+    generator.eval()
 
-        for i in range(num_frames):
-            noise = torch.randn(1, 100, device=device)
+    for i in range(num_frames):
+        noise = torch.randn(1, 100, device=device)
 
-            with torch.no_grad():
-                generated_frame = generator(noise).cpu()
-                generated_frame = (generated_frame * 0.5 + 0.5).clamp(0, 1)
-                frame_path = os.path.join(output_folder, f'frame_{i:04d}.png')
-                save_image(generated_frame, frame_path)
+        with torch.no_grad():
+            generated_frame = generator(noise).cpu()
+            generated_frame = (generated_frame * 0.5 + 0.5).clamp(0, 1)
+            frame_path = os.path.join(output_folder, f'frame_{i:04d}.png')
+            save_image(generated_frame, frame_path)
 
-        print(f'src/main.py : generate_frames() :: Generated frames saved to:', output_folder)
+    print(f'src/main.py : generate_frames() :: Generated frames saved to:', output_folder)
 
-# Convert generated framed into a video file (.mp4 specifically)
+# Convert generated frames into a video file (.mp4 specifically)
 def frames_to_video(output_folder, video_path, frame_rate=FPS):
     frame_files = sorted([os.path.join(output_folder, f) for f in os.listdir(output_folder) if f.endswith('.png')])
 
@@ -163,7 +164,14 @@ if __name__ == '__main__':
     os.makedirs(OUT, exist_ok=True)
     os.makedirs(MODELS, exist_ok=True)
 
-    extract_frames(IN + "trial1_08182023.mp4", FRAMES + "training_frames")
+    # Iterate through videos in the IN directory
+    for vid in os.listdir(IN):
+        if vid.endswith('.mp4'):
+            video_path = os.path.join(IN, vid)
+            subfolder_name = os.path.splitext(vid)[0]
+            framedirname = os.path.join(FRAMES, subfolder_name)
+            extract_frames(video_path, framedirname)
+
     tsfm = transforms.Compose([
         transforms.Resize(TARGETRES),
         transforms.ToTensor(),

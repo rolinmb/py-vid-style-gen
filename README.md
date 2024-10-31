@@ -1,1 +1,1 @@
-Using python and machine learning / stylegan type neural net to generate videos from specified training content. 
+Using python and machine learning / stylegan type neural net to generate videos from specified training content. Made with the help of ChatGPT.

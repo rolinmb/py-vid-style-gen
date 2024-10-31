@@ -11,18 +11,18 @@ from torchvision.utils import save_image
 
 IN = 'vid-in/'
 FRAMES = 'frames/'
-RESULTFRAMEDIR = FRAMES+'result/'
+RESULTFRAMEDIR = FRAMES + 'result/'
 OUT = 'vid-out/'
-OUTNAME = OUT+'output.mp4'
+OUTNAME = OUT + 'output.mp4'
 MODELS = 'models/'
-MODELNAME = MODELS+'pvsg.pth'
+MODELNAME = MODELS + 'pvsg.pth'
 SAVEMODEL = False
 
 TARGETRES = (64, 64)
 NFRAMES = 150
 FPS = 30
 
-# Extract frames from specific video
+# Extract frames from a specific video for training the generator
 def extract_frames(vidin, outdirname):
     if not os.path.exists(vidin):
         print(f"ERROR: The file {vidin} does not exist.")
@@ -49,6 +49,7 @@ def extract_frames(vidin, outdirname):
         framenum += 1
 
     cap.release()
+    print(f'Extracted {framenum} frames from {vidin}.')
 
 class Generator(nn.Module):
     def __init__(self, noise_dim=100, output_channels=3):
@@ -120,7 +121,7 @@ def train(generator, discriminator, dataloader, epochs, device):
             g_loss.backward()
             optimizer_g.step()
 
-        print(f'src/main.py : train() :: Epoch {epoch+1}/{epochs} -> D Loss: {d_loss.item()} ~ G Loss: {g_loss.item()}')
+        print(f'Train Epoch {epoch+1}/{epochs} -> D Loss: {d_loss.item():.4f}, G Loss: {g_loss.item():.4f}')
 
 # Generate new frames using the post-training generator
 def generate_frames(generator, num_frames, output_folder, device):
@@ -162,15 +163,13 @@ if __name__ == '__main__':
     os.makedirs(OUT, exist_ok=True)
     os.makedirs(MODELS, exist_ok=True)
 
-    extract_frames(IN+"trial1_08182023.mp4", FRAMES+"training_frames")
+    extract_frames(IN + "trial1_08182023.mp4", FRAMES + "training_frames")
     tsfm = transforms.Compose([
         transforms.Resize(TARGETRES),
         transforms.ToTensor(),
         transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])
     ])
-    dataset = ImageFolder(root=FRAMES, transform=tsfm)
-    dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
-
+    
     # Load and preprocess frames output folders from input videos for training
     dataset = ImageFolder(root=FRAMES, transform=tsfm)
     dataloader = DataLoader(dataset, batch_size=32, shuffle=True)

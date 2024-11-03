@@ -1,3 +1,4 @@
+import logging
 import shutil
 import os
 import cv2
@@ -22,26 +23,33 @@ TARGETRES = (64, 64)
 NFRAMES = 150
 FPS = 30
 
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers = [logging.StreamHandler()]
+)
+
 # Extract frames from a specific video for training the generator
 def extract_frames(vidin, outdirname):
     if not os.path.exists(vidin):
-        print(f"ERROR: The file {vidin} does not exist.")
+        logging.error(f'src/main.py : extract_frames() :: ERROR ::: The file {vidin} does not exist.')
         return
     
     if not vidin.endswith('.mp4'):
-        print(f"ERROR: The file {vidin} does not have a .mp4 extension.")
+        logging.error(f'src/main.py : extract_frames() :: ERROR ::: The file {vidin} does not have a .mp4 extension.')
         return
 
     if os.path.exists(outdirname):
         shutil.rmtree(outdirname)
 
-    class_folder = os.path.join(outdirname, 'class_0')
+    class_folder = os.path.join(outdirname, 'class0')
     os.makedirs(class_folder, exist_ok=True)
 
     cap = cv2.VideoCapture(vidin)
     framenum = 0
     while cap.isOpened():
         ret, frame = cap.read()
+
         if not ret:
             break
 
@@ -50,7 +58,7 @@ def extract_frames(vidin, outdirname):
         framenum += 1
 
     cap.release()
-    print(f'Extracted {framenum} frames from {vidin}.')
+    logging.info(f'src/main.py : extract_frames() :: Extracted {framenum} frames from {vidin}.')
 
 class Generator(nn.Module):
     def __init__(self, noise_dim=100, output_channels=3):
@@ -122,7 +130,7 @@ def train(generator, discriminator, dataloader, epochs, device):
             g_loss.backward()
             optimizer_g.step()
 
-        print(f'Train Epoch {epoch+1}/{epochs} -> D Loss: {d_loss.item():.4f}, G Loss: {g_loss.item():.4f}')
+        logging.info(f'src/main.py : train() :: Train Epoch {epoch+1}/{epochs} -> D Loss: {d_loss.item():.4f}, G Loss: {g_loss.item():.4f}')
 
 # Generate new frames using the post-training generator
 def generate_frames(generator, num_frames, output_folder, device):
@@ -139,17 +147,17 @@ def generate_frames(generator, num_frames, output_folder, device):
             frame_path = os.path.join(output_folder, f'frame_{i:04d}.png')
             save_image(generated_frame, frame_path)
 
-    print(f'src/main.py : generate_frames() :: Generated frames saved to:', output_folder)
+    logging.info(f'src/main.py : generate_frames() :: Generated frames saved to:', output_folder)
 
 # Convert generated frames into a video file (.mp4 specifically)
 def frames_to_video(output_folder, video_path, frame_rate=FPS):
     frame_files = sorted([os.path.join(output_folder, f) for f in os.listdir(output_folder) if f.endswith('.png')])
 
     if not frame_files:
-        print('src/main.py : frames_to_video() :: No frames found to convert in ', output_folder)
+        logging.info('src/main.py : frames_to_video() :: No frames found to convert in ', output_folder)
         return
     
-    fourcc = cv2.VideoWriter_fourcc(*'avc1')
+    fourcc = cv2.VideoWriter_fourcc(*'avc1') # maybe put *'mp4v' back in?
     video_writer = cv2.VideoWriter(video_path, fourcc, frame_rate, TARGETRES)
 
     for frame_file in frame_files:
@@ -161,7 +169,7 @@ def frames_to_video(output_folder, video_path, frame_rate=FPS):
         video_writer.write(frame)
 
     video_writer.release()
-    print(f'src/main.py : frames_to_video() :: Video saved as {video_path}')
+    logging.info(f'src/main.py : frames_to_video() :: Video saved as {video_path}')
 
 if __name__ == '__main__':
     os.makedirs(IN, exist_ok=True)

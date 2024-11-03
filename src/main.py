@@ -16,7 +16,7 @@ OUT = 'vid-out/'
 OUTNAME = OUT + 'output.mp4'
 MODELS = 'models/'
 MODELNAME = MODELS + 'pvsg.pth'
-SAVEMODEL = False
+SAVEMODEL = True
 
 TARGETRES = (64, 64)
 NFRAMES = 150
@@ -135,6 +135,7 @@ def generate_frames(generator, num_frames, output_folder, device):
         with torch.no_grad():
             generated_frame = generator(noise).cpu()
             generated_frame = (generated_frame * 0.5 + 0.5).clamp(0, 1)
+            generated_frame = generated_frame.mul(255).byte()
             frame_path = os.path.join(output_folder, f'frame_{i:04d}.png')
             save_image(generated_frame, frame_path)
 
@@ -148,11 +149,15 @@ def frames_to_video(output_folder, video_path, frame_rate=FPS):
         print('src/main.py : frames_to_video() :: No frames found to convert in ', output_folder)
         return
     
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    fourcc = cv2.VideoWriter_fourcc(*'avc1')
     video_writer = cv2.VideoWriter(video_path, fourcc, frame_rate, TARGETRES)
 
     for frame_file in frame_files:
         frame = cv2.imread(frame_file)
+
+        if frame.shale[1::-1] != TARGETRES:
+            frame = cv2.resize(frame, TARGETRES)
+
         video_writer.write(frame)
 
     video_writer.release()
